@@ -1,20 +1,25 @@
 # coding: UTF-8
 import base64
-from google.appengine.ext import ndb
 from google.appengine.api import urlfetch
+from google.appengine.ext import ndb
+from googleapiclient.discovery import build
 import json
 import logging
-import webapp2
 from oauth2client.client import GoogleCredentials
-from googleapiclient.discovery import build
+import webapp2
+
+
+# Global Variables
 credentials = GoogleCredentials.get_application_default()
 
+
+# Implementations
 class MainPage(webapp2.RequestHandler):
     def get(self):
         data = CallData.query(
-            ).order(
-                -CallData.created_at
-            ).fetch(10)
+        ).order(
+            -CallData.created_at
+        ).fetch(10)
         j = [d.to_json() for d in data]
         self.response.headers['Content-Type'] = 'application/json'
         self.response.write(j)
@@ -30,7 +35,7 @@ class MainPage(webapp2.RequestHandler):
 <Response>
     <Say>Hello this is Roomba</Say>
     <Record action="http://tottorise.appspot.com/convert" timeout="3" maxlength="4" trim="trim-silence"></Record>
-</Response>        
+</Response>
 '''
         self.response.headers['Content-Type'] = 'text/xml'
         self.response.write(xml)
@@ -43,7 +48,9 @@ def get_command(talk):
     if u'時間' in talk:
         i = talk.index(u'時間')
         try:
-            t = int(talk[i-1:i])
+            s = i - 1
+            e = i
+            t = int(talk[s:e])
         except Exception as e:
             logging.warning(e)
     return 'START', t
@@ -52,9 +59,9 @@ def get_command(talk):
 class ConvertPage(webapp2.RequestHandler):
     def get(self):
         data = OrderData.query(
-            ).order(
-                -OrderData.created_at
-            ).fetch(10)
+        ).order(
+            -OrderData.created_at
+        ).fetch(10)
         j = [d.to_json() for d in data]
         self.response.headers['Content-Type'] = 'application/json'
         self.response.write(j)
@@ -89,12 +96,12 @@ class ConvertPage(webapp2.RequestHandler):
             talk=script,
             command=command,
             time=time
-            ).put()
+        ).put()
 
         xml = '''<?xml version="1.0" encoding="UTF-8" ?>
 <Response>
     <Hangup/>
-</Response>        
+</Response>
 '''
         self.response.headers['Content-Type'] = 'text/xml'
         self.response.write(xml)
@@ -114,11 +121,11 @@ def convert(audio_file):
                 'encoding': 'LINEAR16',
                 'sample_rate': 8000,
                 'languageCode': 'ja-JP'
-                },
+            },
             'audio': {
                 'content': audio
-                }
-            })
+            }
+        })
     response = request.execute()
     logging.debug(json.dumps(response).encode('UTF-8'))
     return response
