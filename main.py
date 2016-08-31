@@ -33,8 +33,8 @@ class MainPage(webapp2.RequestHandler):
 
         xml = '''<?xml version="1.0" encoding="UTF-8" ?>
 <Response>
-    <Say>Hello this is Roomba</Say>
-    <Record action="http://tottorise.appspot.com/convert" timeout="3" maxlength="4" trim="trim-silence"></Record>
+    <Say voice="alice" language="ja-JP">掃除を始めます。時間を指示してください</Say>
+    <Record action="http://tottorise.appspot.com/convert" timeout="3" maxlength="5" trim="trim-silence"></Record>
 </Response>
 '''
         self.response.headers['Content-Type'] = 'text/xml'
@@ -107,6 +107,18 @@ class ConvertPage(webapp2.RequestHandler):
         self.response.write(xml)
 
 
+class OrderPage(webapp2.RequestHandler):
+    def get(self, number):
+        data = OrderData.query(
+            OrderData.called == number
+        ).order(
+            -OrderData.created_at
+        ).fetch(1)
+        j = [d.to_json() for d in data]
+        self.response.headers['Content-Type'] = 'application/json'
+        self.response.write(json.dumps(j))
+
+
 class ConvertTest(webapp2.RequestHandler):
     def get(self):
         convert()
@@ -149,11 +161,17 @@ class OrderData(ndb.Model):
     created_at = ndb.DateTimeProperty(auto_now=True)
 
     def to_json(self):
-        return self.data
+        return {
+            'id': self.key.id(),
+            'order': self.command,
+            'time': self.time,
+            'created_at': self.created_at.strftime('%Y-%m-%dT%H:%M:%SZ')
+        }
 
 
 app = webapp2.WSGIApplication([
     ('/', MainPage),
     ('/convert', ConvertPage),
+    (r'/orders/(.+)', OrderPage),
     ('/convert-test', ConvertTest),
 ], debug=True)
